@@ -1,2 +1,5 @@
 *.bc
 *.so
+*.o
+*.swp
+build/
