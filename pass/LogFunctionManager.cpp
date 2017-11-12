@@ -38,6 +38,7 @@ Function * LogFunctionManager::loadExternalFunction(Module *m, Module *extM, con
     Function *fn = extM->getFunction(name);
     FunctionType *ft = fn->getFunctionType();
     Function *newFn = Function::Create(ft, Function::ExternalWeakLinkage, name, m);
+    cerr << newFn << ":" << newFn->getName().str() << "\n";
     return newFn;
 }
 
@@ -47,7 +48,7 @@ void LogFunctionManager::loadFunctions(Module *m) {
     SMDiagnostic error;
     Module *lib = ParseIRFile(getInstrumentationLibPath().c_str(), error, m->getContext());
 
-    cerr << "Loading external functions...";
+    cerr << "Loading external functions...\n";
     logFunctions[FLOAT][S8] = loadExternalFunction(m, lib, "logAccessF8");
     logFunctions[FLOAT][S16] = loadExternalFunction(m, lib, "logAccessF16");
     logFunctions[FLOAT][S32] = loadExternalFunction(m, lib, "logAccessF32");
@@ -63,7 +64,7 @@ void LogFunctionManager::loadFunctions(Module *m) {
     fnEndLogFunc = loadExternalFunction(m, lib, "logFnEnd");
     initLogFunc = loadExternalFunction(m, lib, "logInit");
     exitLogFunc = loadExternalFunction(m, lib, "logExit");
-    cerr << " done!" << endl;
+    cerr << "done!" << endl;
 
     int i, j;
     for (i = 0; i < VALUE_TYPES_MAX; i++) {

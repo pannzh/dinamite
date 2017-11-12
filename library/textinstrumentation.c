@@ -34,7 +34,7 @@ void logFnEnd(int functionId) {
 }
 
 void logAlloc(void *addr, uint64_t size, uint64_t num, int type, int file, int line, int col) {
-    fprintf(out, "%p %llu %llu %d %d %d %d\n", addr, size, num, type, file, line, col);
+    fprintf(out, "%p %lu %lu %d %d %d %d\n", addr, size, num, type, file, line, col);
     fflush(out);
 }
 
@@ -74,7 +74,7 @@ void logAccessI32(void *ptr, uint32_t value, int type, int file, int line, int c
 }
 
 void logAccessI64(void *ptr, uint64_t value, int type, int file, int line, int col, int typeId, int varId) {
-	fprintf(out, "%p %llu %c %d %d %d %d %d\n", ptr, value, type, file, line, col, typeId, varId);
+	fprintf(out, "%p %lu %c %d %d %d %d %d\n", ptr, value, type, file, line, col, typeId, varId);
     fflush(out);
 
 	/*fprintf(out, "%p %llu %c %d %d %d %d %d\n", ptr,[> value, <]type, file, line, col, typeId, varId);*/

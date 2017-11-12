@@ -1,6 +1,5 @@
-CC=gcc
-
-CFLAGS+= -O3
+CC=clang
+CFLAGS+=-O3
 
 %.o: %.c
 	$(CC) -g -c -fpic -o $@ $< $(CFLAGS)
@@ -12,6 +11,10 @@ null: nullinstrumentation.o bitcode
 	$(CC) -shared -o libinstrumentation.so $<
 
 binary: binaryinstrumentation.o dinamite_time.o
+	make bitcode
+	$(CC) -shared -o libinstrumentation.so $^
+
+hotarea: hotareainstrumentation.o
 	make bitcode
 	$(CC) -shared -o libinstrumentation.so $^
 
