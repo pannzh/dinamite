@@ -211,7 +211,7 @@ namespace {
             parent.append(fieldName);
 
             if ((parent.length() > 5) && (parent.substr(parent.length()-5,
-							parent.length()).compare(".addr") == 0)) {
+                            parent.length()).compare(".addr") == 0)) {
                 parent.erase(parent.length()-5, parent.length());
             }
 
@@ -534,7 +534,7 @@ namespace {
                     argLogSet.insert(it);
                     Value *destPtr = ArgLoadBuilder.CreateAlloca(it->getType());
                     Value *storeInst = ArgLoadBuilder.CreateStore(it, destPtr);
-		    (void)storeInst;
+                    (void)storeInst;
                 }
                 idx++;
             }
@@ -557,141 +557,140 @@ namespace {
             cerr << "done!" << endl;
 
             for (Function &f : m) {
-                if (!lfm.isLogFunction(&f)) { // TODO: remove and test, should work
-                    //string fname = demangle(f.getName().str().c_str());
+                // TODO: remove and test, should work
+                if (lfm.isLogFunction(&f))
+                    continue;
+                //string fname = demangle(f.getName().str().c_str());
 
-                    size_t fnSize;
+                size_t fnSize;
 
-                    fn_size_metrics metric = insfilt.getFunctionSizeMetric();
+                fn_size_metrics metric = insfilt.getFunctionSizeMetric();
 
-                    if (metric == FN_SIZE_IR) {
-                        fnSize = f.size();
-                    } else if (metric == FN_SIZE_LOC) {
-                        fnSize = getFunctionLOCSize(f);
-                    } else { /* FN_SIZE_PATH */
-			    fnSize = longestPathSize(f);
+                if (metric == FN_SIZE_IR) {
+                    fnSize = f.size();
+                } else if (metric == FN_SIZE_LOC) {
+                    fnSize = getFunctionLOCSize(f);
+                } else { /* FN_SIZE_PATH */
+                    fnSize = longestPathSize(f);
 
-			    /* If the function has loops and the loop
-			     * check is on, we want to keep functions
-			     * with loops regardless of their size.
-			     * Adjust the size of the function to
-			     * a very large number to reflect that
-			     * setting.
-			     */
-			    if (checkFunctionLoops(f) &&
-				insfilt.loopCheckEnabled()) {
-				    fnSize = (size_t) ((uint32_t)~0);
+                    /* If the function has loops and the loop
+                     * check is on, we want to keep functions
+                     * with loops regardless of their size.
+                     * Adjust the size of the function to
+                     * a very large number to reflect that
+                     * setting.
+                     */
+                    if (checkFunctionLoops(f) &&
+                            insfilt.loopCheckEnabled()) {
+                        fnSize = (size_t) ((uint32_t)~0);
 #ifdef DEBUG_PRINT
-				    cerr << "Loop check enabled: " <<
-					    "size set to " << fnSize
-					 << endl;
+                        cerr << "Loop check enabled: " <<
+                            "size set to " << fnSize
+                            << endl;
 #endif
-			    }
                     }
+                }
 
 #ifdef DEBUG_PRINT
-		    cerr << f.getName().str() << ": " << fnSize
-			 << ", metric is ";
+                cerr << f.getName().str() << ": " << fnSize
+                    << ", metric is ";
 
-		    if (metric == FN_SIZE_LOC)
-			    cerr << "LOC";
-		    else if (metric == FN_SIZE_IR)
-			    cerr << "IR";
-		    else
-			    cerr << "LOC_PATH";
-		    cerr << endl;
+                if (metric == FN_SIZE_LOC)
+                    cerr << "LOC";
+                else if (metric == FN_SIZE_IR)
+                    cerr << "IR";
+                else
+                    cerr << "LOC_PATH";
+                cerr << endl;
 #endif
 
-                    if (!insfilt.checkFunctionSize(f.getName().str(), fnSize))
-			    continue;
+                if (!insfilt.checkFunctionSize(f.getName().str(), fnSize))
+                    continue;
 
-                    bool accessFilter = insfilt.checkFunctionFilter(
-			    f.getName().str(), "access");
-                    bool functionFilter = insfilt.checkFunctionFilter(
-			    f.getName().str(), "function");
-                    bool allocFilter = insfilt.checkFunctionFilter(
-			    f.getName().str(), "alloc");
+                bool accessFilter = insfilt.checkFunctionFilter(
+                        f.getName().str(), "access");
+                bool functionFilter = insfilt.checkFunctionFilter(
+                        f.getName().str(), "function");
+                bool allocFilter = insfilt.checkFunctionFilter(
+                        f.getName().str(), "alloc");
 
 #ifdef DEBUG_PRINT
-		    cerr << "functionFilter for " << f.getName().str() << " is "
-			 << functionFilter << ".";
-		    if (functionFilter)
-			    cerr << "Instrumenting...";
-		    else
-			    cerr << "Not instrumenting...";
-		    cerr << endl;
+                cerr << "functionFilter for " << f.getName().str() << " is "
+                    << functionFilter << ".";
+                if (functionFilter)
+                    cerr << "Instrumenting...";
+                else
+                    cerr << "Not instrumenting...";
+                cerr << endl;
 #endif
-                    currentFunction = &f;
+                currentFunction = &f;
 
-                    //TODO: fill this with functionality:
-                    if (functionFilter) {
-                        queueAndInjectArgsToLog(&f);
-                    }
+                //TODO: fill this with functionality:
+                if (functionFilter) {
+                    queueAndInjectArgsToLog(&f);
+                }
 
-                    if (!f.empty()) {
-                        BasicBlock &entryBlock = f.getEntryBlock();
-                        Instruction *first = entryBlock.getFirstInsertionPt();
-                        if ((functionFilter) || (f.getName().str().compare("main") == 0)) {
-                            instrumentFnEvent(first, FN_BEGIN);
-                        }
-
-                    }
-                    for (BasicBlock &b : f) {
-                        {
-                            TerminatorInst *ti = b.getTerminator();
-                            if (ReturnInst *ri = dyn_cast<ReturnInst>(ti)) {
-                            if ((functionFilter) || (f.getName().str().compare("main") == 0)) {
-                                    instrumentFnEvent(ri, FN_END);
-                                }
-                            }
-                        }
-                        for (Instruction &i : b) {
-#ifdef DEBUG_PRINT
-                            cerr << "Ins: " << i.getOpcodeName() << endl;
-#endif
-
-#ifndef INST_ALLOC_ONLY
-                            bool isArg;
-                            if (StoreInst *si = dyn_cast<StoreInst>(&i)) {
-				    /* First check for argument instrumentation,
-				     * and remember the result.
-				     */
-				    if ( (functionFilter &&
-					  (isArg = checkAndConsumeArg(si)))
-					 || (accessFilter)) {
-                                            /* These guys get read once at the
-					     * start of the function.
-					     */
-					    if (isArg) {
-						    instrumentAccess(si, 'a');
-					    } else {
-						    instrumentAccess(si, 'w');
-					    }
-				    }
-                            }
-
-                            if (LoadInst *li = dyn_cast<LoadInst>(&i)) {
-                                if (accessFilter) {
-                                    instrumentAccess(li, 'r');
-                                }
-                            }
-#endif
-
-                            if (CallInst *ci = dyn_cast<CallInst>(&i)) {
-                                if (allocFilter) {
-                                    instrumentAlloc(ci);
-                                }
-
-                                if ((functionFilter) || (f.getName().str().compare("main") == 0)) {
-                                    instrumentExit(ci);
-                                }
-                            }
-                        }
-
+                if (!f.empty()) {
+                    BasicBlock &entryBlock = f.getEntryBlock();
+                    Instruction *first = entryBlock.getFirstInsertionPt();
+                    if ((functionFilter) || (f.getName().str().compare("main") == 0)) {
+                        instrumentFnEvent(first, FN_BEGIN);
                     }
 
                 }
-            }
+                for (BasicBlock &b : f) {
+                    {
+                        TerminatorInst *ti = b.getTerminator();
+                        if (ReturnInst *ri = dyn_cast<ReturnInst>(ti)) {
+                            if ((functionFilter) || (f.getName().str().compare("main") == 0)) {
+                                instrumentFnEvent(ri, FN_END);
+                            }
+                        }
+                    }
+                    for (Instruction &i : b) {
+#ifdef DEBUG_PRINT
+                        cerr << "Ins: " << i.getOpcodeName() << endl;
+#endif
+
+#ifndef INST_ALLOC_ONLY
+                        bool isArg;
+                        if (StoreInst *si = dyn_cast<StoreInst>(&i)) {
+                            /* First check for argument instrumentation,
+                             * and remember the result.
+                             */
+                            if ( (functionFilter &&
+                                        (isArg = checkAndConsumeArg(si)))
+                                    || (accessFilter)) {
+                                /* These guys get read once at the
+                                 * start of the function.
+                                 */
+                                if (isArg) {
+                                    instrumentAccess(si, 'a');
+                                } else {
+                                    instrumentAccess(si, 'w');
+                                }
+                            }
+                        }
+
+                        if (LoadInst *li = dyn_cast<LoadInst>(&i)) {
+                            if (accessFilter) {
+                                instrumentAccess(li, 'r');
+                            }
+                        }
+#endif
+
+                        if (CallInst *ci = dyn_cast<CallInst>(&i)) {
+                            if (allocFilter) {
+                                instrumentAlloc(ci);
+                            }
+
+                            if ((functionFilter) || (f.getName().str().compare("main") == 0)) {
+                                instrumentExit(ci);
+                            }
+                        }
+                    } // Instruction
+                } // BasicBlock
+            } // Function
             srcmap.saveMap();
             typemap.saveMap();
             varmap.saveMap();
@@ -711,14 +710,14 @@ namespace {
             //RegisterMyPass(llvm::PassManagerBuilder::EP_EarlyAsPossible,
             RegisterMyPass(llvm::PassManagerBuilder::EP_EnabledOnOptLevel0,
                     registerAccessInstrumentationPass);
-/*
+        /*
+           static llvm::RegisterStandardPasses
+           RegisterMyPassOx(llvm::PassManagerBuilder::EP_OptimizerLast,
+           registerAccessInstrumentationPass);
+           */
         static llvm::RegisterStandardPasses
-            RegisterMyPassOx(llvm::PassManagerBuilder::EP_OptimizerLast,
+            RegisterMyPassOx(llvm::PassManagerBuilder::EP_ModuleOptimizerEarly,
                     registerAccessInstrumentationPass);
-*/
-	static llvm::RegisterStandardPasses
-	RegisterMyPassOx(llvm::PassManagerBuilder::EP_ModuleOptimizerEarly,
-			 registerAccessInstrumentationPass);
     }
 
     char AccessInstrumentationPass::ID = 0;
