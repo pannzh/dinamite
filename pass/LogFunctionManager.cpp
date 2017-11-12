@@ -36,6 +36,10 @@ string LogFunctionManager::getInstrumentationLibPath() {
 
 Function * LogFunctionManager::loadExternalFunction(Module *m, Module *extM, const char *name) {
     Function *fn = extM->getFunction(name);
+    if (!fn) {
+        cerr << "Failed to load external function " << name << "\n";
+        return NULL;
+    }
     FunctionType *ft = fn->getFunctionType();
     Function *newFn = Function::Create(ft, Function::ExternalWeakLinkage, name, m);
     cerr << newFn << ":" << newFn->getName().str() << "\n";
@@ -64,6 +68,7 @@ void LogFunctionManager::loadFunctions(Module *m) {
     fnEndLogFunc = loadExternalFunction(m, lib, "logFnEnd");
     initLogFunc = loadExternalFunction(m, lib, "logInit");
     exitLogFunc = loadExternalFunction(m, lib, "logExit");
+    blockLogFunc = loadExternalFunction(m, lib, "logBasicBlock");
     cerr << "done!" << endl;
 
     int i, j;
@@ -128,8 +133,11 @@ Function * LogFunctionManager::getLogFunction(Value *v, Function *parent) {
 }
 
 bool LogFunctionManager::isLogFunction(Function *f) {
-    if (f->getName().equals(ptrLogFunc->getName())) return true;
-    if (f->getName().equals(allocLogFunc->getName())) return true;
+    if (f->getName().equals(ptrLogFunc->getName())
+        || f->getName().equals(allocLogFunc->getName())
+        || f->getName().equals(blockLogFunc->getName())
+        )
+        return true;
     int i, j;
 
     for (i = 0; i < VALUE_TYPES_MAX; i++) {

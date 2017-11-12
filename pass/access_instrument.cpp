@@ -53,7 +53,7 @@ namespace {
         IdMap typemap;
         IdMap varmap;
         IdMap fnmap;
-
+        IdMap bbmap;
 
         AllocDefManager adm;
         MetadataCrawler mdc;
@@ -75,26 +75,32 @@ namespace {
             srcmap("map_sources.json"),
             typemap("map_types.json"),
             varmap("map_variables.json"),
-            fnmap("map_functions.json") {}
+            fnmap("map_functions.json"),
+            bbmap("map_blocks.json") {}
 
         SourceLoc getSourceLoc(Instruction *i);
         Function * loadExternalFunction(Module *m, Module *extM, const char *name);
-        Constant *getConstantFromInt(int val, Type *t) {
-            APInt ai(32, val, true);
-            return Constant::getIntegerValue(t, ai);
-        }
+        Constant *getConstantFromInt(int val, Type *t);
         string getVarName(Value *v);
         string getValueType(Value *v);
         StringRef getGEPVarName(GetElementPtrInst *gep);
         string getGEPType(GetElementPtrInst *gep);
+        bool checkAndConsumeArg(StoreInst *si);
+        void queueAndInjectArgsToLog(Function *f);
+
         void instrumentAccess(Instruction *si, char accessType);
         void instrumentAlloc(CallInst *ci);
         void instrumentFnEvent(Instruction *i, int event);
         void instrumentExit(CallInst *ci);
-        bool checkAndConsumeArg(StoreInst *si);
-        void queueAndInjectArgsToLog(Function *f);
+        void instrumentBasicBlock(BasicBlock *b);
+
         virtual bool runOnModule(Module &m);
     };
+
+    inline Constant *AccessInstrumentationPass::getConstantFromInt(int val, Type *t) {
+        APInt ai(32, val, true);
+        return Constant::getIntegerValue(t, ai);
+    }
 
     AccessInstrumentationPass::SourceLoc AccessInstrumentationPass::getSourceLoc(Instruction *i) {
         SourceLoc retval;
@@ -460,6 +466,7 @@ namespace {
         }
 
     }
+
     void AccessInstrumentationPass::instrumentFnEvent(Instruction *i, int event) {
         IRBuilder<> Builder(i);
         std::vector<Value *> args;
@@ -493,6 +500,7 @@ namespace {
         args.push_back(getConstantFromInt(fnid, lfunc->getFunctionType()->getParamType(0)));
         Builder.CreateCall(lfunc, args);
     }
+
     void AccessInstrumentationPass::instrumentExit(CallInst *ci) {
         IRBuilder<> Builder(ci);
         std::vector<Value *> args;
@@ -506,6 +514,28 @@ namespace {
             Builder.CreateCall(lfm.exitLogFunc, args);
         }
     }
+
+    void AccessInstrumentationPass::instrumentBasicBlock(BasicBlock *B) {
+        Instruction *first = B->getFirstInsertionPt();
+        if (!first) {
+            return;
+        }
+        IRBuilder<> Builder(first);
+        std::vector<Value *> args;
+        StringRef blockName( B->getParent()->getName().str() + "()." + B->getName().str() );
+        cerr << "BasicBlock " << blockName.str() << endl;
+        SourceLoc srcLoc = getSourceLoc(B->getFirstNonPHI());
+
+        int blockid = bbmap.getId(blockName.str());
+        args.push_back(getConstantFromInt(blockid, lfm.blockLogFunc->getFunctionType()->getParamType(0)));
+        args.push_back(getConstantFromInt(srcLoc.fileId, lfm.blockLogFunc->getFunctionType()->getParamType(1)));
+        args.push_back(getConstantFromInt(srcLoc.line, lfm.blockLogFunc->getFunctionType()->getParamType(2)));
+        args.push_back(getConstantFromInt(srcLoc.col, lfm.blockLogFunc->getFunctionType()->getParamType(3)));
+
+        Builder.CreateCall(lfm.blockLogFunc, args);
+    }
+
+
     bool AccessInstrumentationPass::checkAndConsumeArg(StoreInst *si) {
         Value *argCandidate = si->op_begin()->get();
 
@@ -657,6 +687,7 @@ namespace {
                             instrumentFnEvent(ri, FN_END);
                         }
                     }
+                    instrumentBasicBlock(&b);
                 }
                 for (Instruction &i : b) {
 #ifdef DEBUG_PRINT
@@ -706,6 +737,7 @@ namespace {
         typemap.saveMap();
         varmap.saveMap();
         fnmap.saveMap();
+        bbmap.saveMap();
 
         return true;
     }

@@ -15,7 +15,7 @@ binary: binaryinstrumentation.o dinamite_time.o
 	$(CC) -shared -o libinstrumentation.so $^
 
 hotarea: hotareainstrumentation.o
-	make bitcode
+	clang -emit-llvm hotareainstrumentation.c -c -g -o instrumentation.bc
 	$(CC) -shared -o libinstrumentation.so $^
 
 bitcode: textinstrumentation.c

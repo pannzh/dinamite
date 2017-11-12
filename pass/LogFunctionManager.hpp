@@ -25,13 +25,14 @@ class LogFunctionManager {
 
     public:
         Function *logFunctions[VALUE_TYPES_MAX][VALUE_SIZES_MAX];
-        Function *ptrLogFunc; 
-        Function *stringLogFunc; 
-        Function *allocLogFunc; 
-        Function *fnBeginLogFunc; 
-        Function *fnEndLogFunc; 
-        Function *initLogFunc; 
-        Function *exitLogFunc; 
+        Function *ptrLogFunc;
+        Function *stringLogFunc;
+        Function *allocLogFunc;
+        Function *fnBeginLogFunc;
+        Function *fnEndLogFunc;
+        Function *initLogFunc;
+        Function *exitLogFunc;
+        Function *blockLogFunc;
 
         int getSizeIndex(int size);
         void loadFunctions(Module *m);
