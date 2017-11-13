@@ -5,7 +5,10 @@ For more info and a quickstart guide, go to https://dinamite-toolkit.github.io/
 
 # build
 
+
 ## build pass (libAccessInstrument.so)
+
+first set your `LLVM_DIR` path in CMakeLists.txt
 
 ```bash
 mkdir build && cd build
@@ -15,15 +18,21 @@ make
 
 ## build runtime
 
+first set your `LLVM_DIR` in bashrc and then
+```
+source bashrc
+```
+
+### build libinstrumentation.so
+
 ```
 cd library
 make hotarea
 ```
 
-# build target
+### build target
 
 ```bash
-source bashrc
 cd tests
 mkdir maps
 DIN_MAPS=maps $DIN_CC $DIN_LDFLAGS main.c -o a.out
@@ -38,15 +47,15 @@ cd tests && ./a.out
 ```
 This would generate `basic_block.trace` and `access.trace` file.
 to analysis the trace file, we prepared a script in `utils/trace_parser.py`.
-for example (assume we're in tests which compile the main.c):
+for example (assume we're in tests directory where we compiled the main.c previously):
 
-1. to get per basic block access counts:
+1. to get per basic block access counts (to identify hot area):
 
 ```bash
 ../utils/trace_parser.py -a block -t basic_block.trace -m maps
 ```
 
-outputs:
+outputs example:
 
 ```json
 {
@@ -65,13 +74,13 @@ outputs:
 }
 ```
 
-2. get value range of variables:
+2. get value range of variables (for value profiling):
 
 ```
 ../utils/trace_parser.py -a value -t access.trace -m maps
 ```
 
-output:
+output example:
 ```json
 {
     "n/a:-1 main().retval": {
