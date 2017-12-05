@@ -1,8 +1,10 @@
 CC=clang
 CFLAGS+=-O3
+#DFSAN_FLAGS=-DDF_ANALYSIS -fsanitize=dataflow
+DFSAN_FLAGS=-DDF_ANALYSIS
 
 %.o: %.c
-	$(CC) -g -c -fpic -o $@ $< $(CFLAGS)
+	$(CC) -g -c -fpic -o $@ $< $(CFLAGS) $(DFSAN_FLAGS)
 
 text: textinstrumentation.o bitcode
 	$(CC) -shared -o libinstrumentation.so $<
@@ -15,7 +17,7 @@ binary: binaryinstrumentation.o dinamite_time.o
 	$(CC) -shared -o libinstrumentation.so $^
 
 hotarea: hotareainstrumentation.o
-	clang -emit-llvm hotareainstrumentation.c -c -g -o instrumentation.bc
+	clang $(DFSAN_FLAGS) -emit-llvm hotareainstrumentation.c -c -g -o instrumentation.bc
 	$(CC) -shared -o libinstrumentation.so $^
 
 bitcode: textinstrumentation.c

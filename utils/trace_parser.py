@@ -25,7 +25,7 @@ def print_value_range(filename, mapsdir):
         for trace in f:
             try:
                 _, value, accessType, fileId, line, _,\
-                typeId, varId = trace.split()
+                typeId, varId, tainted = trace.split()
                 varId = int(varId)
                 typeId = int(typeId)
                 fileId = int(fileId)

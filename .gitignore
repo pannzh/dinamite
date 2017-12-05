@@ -3,3 +3,6 @@
 *.o
 *.swp
 build/
+tests/a.out
+tests/*.trace
+tests/maps

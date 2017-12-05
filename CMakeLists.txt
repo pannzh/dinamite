@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
+project(dinamite)
 set( CMAKE_EXPORT_COMPILE_COMMANDS 1 )
 
 set(LLVM_DIR /home/pan/project/LLVM/llvm-src/llvm-3.5.0.build/share/llvm/cmake)

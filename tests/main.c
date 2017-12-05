@@ -22,10 +22,12 @@ int abc(int i, void *second) {
     return 0;
 }
 
+extern void df_init(void *ptr, size_t size);
 int main(int argc, char **argv) {
     compositestruct cs;
     simplestruct ss;
     simplestruct ssarr[50000];
+    df_init(ssarr, 50000);
 
     struct {
         int test1;
