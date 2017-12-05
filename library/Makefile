@@ -1,6 +1,5 @@
 CC=clang
 CFLAGS+=-O3
-#DFSAN_FLAGS=-DDF_ANALYSIS -fsanitize=dataflow
 DFSAN_FLAGS=-DDF_ANALYSIS
 
 %.o: %.c

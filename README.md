@@ -38,6 +38,15 @@ mkdir maps
 DIN_MAPS=maps $DIN_CC $DIN_LDFLAGS main.c -o a.out
 ```
 
+> Note: The above order is important, since we need `library/instrumentation.bc` to compile `main.c`
+
+### taint analysis
+
+By default taint analysis is supported, if you want to disable it:
+
+- 1) remove `-DDF_ANALYSIS` from `library/Makefile`'s `DFSAN_FLAGS`
+- 2) remove `-fsanitize` from `bashrc`'s `DIN_CC`
+
 # run
 
 ## run target
@@ -229,3 +238,7 @@ output example:
     }
 }
 ```
+
+# TODO
+
+Port to LLVM-4.0 and later

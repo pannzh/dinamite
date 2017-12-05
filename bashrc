@@ -5,7 +5,7 @@ DIN_ROOT=/home/pan/project/LLVM/llvm-pass/dinamite
 DIN_BUILD=$DIN_ROOT/build
 DIN_CC="clang -g -Xclang -load -Xclang $DIN_BUILD/pass/libAccessInstrument.so"
 DIN_CXX="clang++ -g -Xclang -load -Xclang $DIN_BUILD/pass/libAccessInstrument.so"
-DIN_LDFLAGS="-L$DIN_ROOT/library -linstrumentation -lpthread"
+DIN_LDFLAGS="-L$DIN_ROOT/library -linstrumentation -lpthread -fsanitize=dataflow"
 export INST_LIB=$DIN_ROOT/library
 export DIN_MAPS=maps
 #export DIN_FILTERS=$DIN_ROOT/function_filter.json
